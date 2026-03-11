@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      releases: write
+      release: write
     steps:
       - uses: actions/checkout@v4
       - name: Draft release notes
