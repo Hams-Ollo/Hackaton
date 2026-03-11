@@ -1,0 +1,16 @@
+
+name: release-notes
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      releases: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Draft release notes
+        run: echo "Call Release Notes Agent..."

@@ -1,0 +1,1 @@
+# TODO: Azure Function entrypoint for issue triage

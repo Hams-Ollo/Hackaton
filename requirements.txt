@@ -1,0 +1,8 @@
+azure-openai
+azure-identity
+azure-search-documents
+azure-keyvault-secrets
+azure-functions
+requests
+flask
+pytest

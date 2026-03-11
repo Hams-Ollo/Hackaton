@@ -1,0 +1,4 @@
+{
+  "embedding_deployment": "text-embedding-3-small",
+  "ai_search_admin_key": "<search-admin-key>"
+}
