@@ -1,0 +1,227 @@
+﻿# ado-config.yaml
+# Central configuration for the ADO Backlog Automation pipeline.
+# Safe to commit — contains no credentials.
+# Credentials (ADO_PAT) live in ado_backlog_pipeline/.env — never stored here.
+
+# ---------------------------------------------------------------------------
+# Azure DevOps connection
+# ---------------------------------------------------------------------------
+ado:
+  org_url: https://dev.azure.com/RARJ-CAP  # TODO: confirm exact org name with team
+  project: Hackaton                          # TODO: confirm ADO project name with team
+
+# ---------------------------------------------------------------------------
+# Data paths (relative to ado_backlog_pipeline/ bundle root)
+# ---------------------------------------------------------------------------
+csv_path: data/backlog.csv
+work_log_path: data/work-log.csv          # gitignored — each dev keeps their own copy
+
+# ---------------------------------------------------------------------------
+# Iteration shorthand → full ADO iteration path
+# Add new iterations here each sprint — never modify existing entries.
+# ---------------------------------------------------------------------------
+iteration_map:
+  "1":   "Hackaton\\Sprint 1"    # TODO: confirm full iteration path in ADO with team
+  "2":   "Hackaton\\Sprint 2"
+  "3":   "Hackaton\\Sprint 3"
+
+# ---------------------------------------------------------------------------
+# Display name → ADO email (used for System.AssignedTo field)
+# To add a new team member: append their entry here and commit to main.
+# Format: "Display Name": "email@capgemini.com"
+# ---------------------------------------------------------------------------
+assignee_map:
+  "Hans Havlik":           "hans.havlik@capgemini.com"
+  "Jamil Al Bouhairi":     "jamil.al-bouhairi@capgemini.com"    # TODO: confirm exact email
+  "Ricardo Reyes-Jimenez": "ricardo.reyes-jimenez@capgemini.com" # TODO: confirm exact email
+  "Uma Bharti":            "uma.bharti@capgemini.com"           # TODO: confirm exact email
+
+# ---------------------------------------------------------------------------
+# CSV State value → ADO state, per work item type
+# Valid ADO states: New, Active, Closed, Removed  (Task has no Resolved)
+# ---------------------------------------------------------------------------
+state_map:
+  default:
+    "Done":         "Closed"
+    "In Progress":  "Active"
+    "Not Started":  "New"
+    "Blocked":      "Active"
+  Epic:
+    "Done":         "Closed"
+    "In Progress":  "Active"
+    "Not Started":  "New"
+  Feature:
+    "Done":         "Closed"
+    "In Progress":  "Active"
+    "Not Started":  "New"
+  "User Story":
+    "Done":         "Closed"
+    "In Progress":  "Active"
+    "Not Started":  "New"
+  Task:
+    "Done":         "Closed"
+    "In Progress":  "Active"
+    "Not Started":  "New"
+
+# ---------------------------------------------------------------------------
+# Tags automatically appended to every created/updated work item on push.
+# Individual item tags from the "Tags" CSV column are merged with these.
+# ---------------------------------------------------------------------------
+auto_tags: "csv-sync; hackathon; agentic-devops"
+
+# ---------------------------------------------------------------------------
+# Field defaults — applied when a CSV cell is blank.
+# Prevents null-patching optional fields to ADO.
+# ---------------------------------------------------------------------------
+field_defaults:
+  Priority: 2           # 1=Critical, 2=High, 3=Medium, 4=Low
+  Severity: "2 - High"  # Bug default  (1 - Critical | 2 - High | 3 - Medium | 4 - Low)
+  Risk: "2 - Medium"    # Story/Epic/Feature default  (1 - High | 2 - Medium | 3 - Low)
+  Blocked: "No"         # Task/Bug default  (Yes | No)
+
+# ---------------------------------------------------------------------------
+# Priority defaults (used by set-priority.py)
+# Applied only to blank cells — existing values are never overwritten.
+# Run: python scripts/set-priority.py            (fill blanks, open items)
+#      python scripts/set-priority.py --dry-run  (preview only)
+#      python scripts/set-priority.py --report   (list gaps only)
+# Scale: 1=Critical  2=High  3=Medium  4=Low
+# ---------------------------------------------------------------------------
+priority_defaults:
+  default: 2              # Fallback if no type-specific override matches
+  by_type:
+    Epic:         1       # Epics drive sprint delivery — always Critical
+    Feature:      2       # Features are active sprint work — High
+    "User Story": 2       # User Stories are active sprint work — High
+    Task:         2       # Tasks default to High; bump to 1 if blocking
+    Bug:          1       # Bugs are always Critical until triaged
+    "Test Case":  3       # Test Cases are supporting work — Medium
+    "Test Plan":  3       # Test Plans are supporting work — Medium
+
+# ---------------------------------------------------------------------------
+# Pull configuration (pull-ado-workitems.py)
+# ---------------------------------------------------------------------------
+pull:
+  default_assignee: "Hans Havlik"      # whose items to pull by default (--assignee me) — override with --assignee "Name"
+  default_filter: assignee             # assignee | iteration | all
+  protected_columns:                   # NEVER overwritten during a pull — local-only fields
+    - Work Notes
+    - Owner
+    - Dev Lead
+    - In scope for DEMO or MVP Release?
+    - Branch Name
+    - Branch Repo
+    - Comments
+    - Blocker/Dependency
+    - Status
+    - _row_dirty
+
+# ---------------------------------------------------------------------------
+# Git repository names in this ADO project (used for branch linking)
+# Key = short name used in "Branch Repo" CSV column
+# Value = exact repository name in Azure DevOps
+# ---------------------------------------------------------------------------
+git_repos:
+  hackathon: "hackathon-project"  # Terraformers-Anonymous/hackathon-project
+
+# ---------------------------------------------------------------------------
+# Field registry — single source of truth for all 43 CSV columns.
+# display   : exact CSV column header name
+# ado_ref   : ADO REST API reference name (used in SELECT and PATCH)
+# writable  : false = never PATCH this field to ADO (system-managed)
+# types     : (optional) limit write to these work item types
+# local_only: true = no ADO backing field; preserved through pull
+# ---------------------------------------------------------------------------
+fields:
+  # --- Identity (6) ---
+  - { display: "ID (ADO)",                         ado_ref: "System.Id",                                   writable: false }
+  - { display: "Type",                             ado_ref: "System.WorkItemType",                         writable: false }
+  - { display: "Parent ID (ADO)",                  ado_ref: "System.Parent",                               writable: true  }
+  - { display: "Title",                            ado_ref: "System.Title",                                writable: true  }
+  - { display: "Area Path",                        ado_ref: "System.AreaPath",                             writable: true  }
+  - { display: "Iteration #",                      ado_ref: "System.IterationPath",                        writable: true  }
+  # --- Planning (8) ---
+  - { display: "Priority",                         ado_ref: "Microsoft.VSTS.Common.Priority",              writable: true  }
+  - { display: "Backlog Priority",                 ado_ref: "Microsoft.VSTS.Common.BacklogPriority",       writable: false }
+  - { display: "Story Points",                     ado_ref: "Microsoft.VSTS.Scheduling.StoryPoints",       writable: true,  types: ["User Story", "Task"] }
+  - { display: "Effort",                           ado_ref: "Microsoft.VSTS.Scheduling.Effort",            writable: true,  types: ["Epic", "Feature"] }
+  - { display: "Business Value",                   ado_ref: "Microsoft.VSTS.Common.BusinessValue",         writable: true  }
+  - { display: "Time Criticality",                 ado_ref: "Microsoft.VSTS.Common.TimeCriticality",       writable: true  }
+  - { display: "Risk",                             ado_ref: "Microsoft.VSTS.Common.Risk",                  writable: true,  types: ["Epic", "Feature", "User Story"] }
+  - { display: "Severity",                         ado_ref: "Microsoft.VSTS.Common.Severity",              writable: true,  types: ["Bug"] }
+  # --- Scheduling (2) ---
+  - { display: "Start (MM/DD/YYYY)",               ado_ref: "Microsoft.VSTS.Scheduling.StartDate",         writable: true  }
+  - { display: "End (MM/DD/YYYY)",                 ado_ref: "Microsoft.VSTS.Scheduling.TargetDate",        writable: true  }
+  # --- State & Board (5) ---
+  - { display: "State (ADO)",                      ado_ref: "System.State",                                writable: true  }
+  - { display: "Reason",                           ado_ref: "System.Reason",                               writable: false }
+  - { display: "Blocked",                          ado_ref: "Microsoft.VSTS.CMMI.Blocked",                 writable: true,  types: ["Bug", "Task"] }
+  - { display: "Board Column",                     ado_ref: "System.BoardColumn",                          writable: false }
+  - { display: "Board Lane",                       ado_ref: "System.BoardLane",                            writable: false }
+  # --- Audit Dates (6) ---
+  - { display: "Created Date (ADO)",               ado_ref: "System.CreatedDate",                          writable: false }
+  - { display: "Changed Date (ADO)",               ado_ref: "System.ChangedDate",                          writable: false }
+  - { display: "State Changed Date (ADO)",         ado_ref: "Microsoft.VSTS.Common.StateChangeDate",       writable: false }
+  - { display: "Activated Date (ADO)",             ado_ref: "Microsoft.VSTS.Common.ActivatedDate",         writable: false }
+  - { display: "Resolved Date (ADO)",              ado_ref: "Microsoft.VSTS.Common.ResolvedDate",          writable: false }
+  - { display: "Closed Date (ADO)",                ado_ref: "Microsoft.VSTS.Common.ClosedDate",            writable: false }
+  # --- Assignment & Tags (2) ---
+  - { display: "Assigned To (ADO)",                ado_ref: "System.AssignedTo",                           writable: true  }
+  - { display: "Tags",                             ado_ref: "System.Tags",                                 writable: true  }
+  # --- Counts (2) ---
+  - { display: "Comment Count",                    ado_ref: "System.CommentCount",                         writable: false }
+  - { display: "Related Link Count",               ado_ref: "System.RelatedLinkCount",                     writable: false }
+  # --- Content (1) ---
+  - { display: "Description",                      ado_ref: "System.Description",                          writable: true  }
+  # --- Local-only (10) — no ADO backing field; never sourced from ADO ---
+  - { display: "Status",          local_only: true, note: "Derived Active/Closed — kept locally" }
+  - { display: "Owner",           local_only: true }
+  - { display: "Dev Lead",        local_only: true }
+  - { display: "Work Notes",      local_only: true, note: "Posted to System.History on push then cleared" }
+  - { display: "Comments",        local_only: true }
+  - { display: "Blocker/Dependency", local_only: true }
+  - { display: "Branch Name",     local_only: true, note: "Creates ArtifactLink Branch relation on push" }
+  - { display: "Branch Repo",     local_only: true }
+  - { display: "In scope for DEMO or MVP Release?", local_only: true, note: "Adds mvp-scope tag on push" }
+  # --- Meta (2) ---
+  - { display: "Last Synced (ADO)", local_only: true, note: "UTC timestamp managed by pull-ado-workitems.py" }
+  - { display: "_row_dirty",        local_only: true, note: "Set to 1 to flag row has unpushed local edits; cleared by sync" }
+
+# ---------------------------------------------------------------------------
+# Read-only ADO columns — sync-ado-workitems.py must NEVER PATCH these.
+# Mirrors all writable: false entries from the fields section above.
+# ---------------------------------------------------------------------------
+read_only_ado_columns:
+  - "Backlog Priority"
+  - "Reason"
+  - "Board Column"
+  - "Board Lane"
+  - "Created Date (ADO)"
+  - "Changed Date (ADO)"
+  - "State Changed Date (ADO)"
+  - "Activated Date (ADO)"
+  - "Resolved Date (ADO)"
+  - "Closed Date (ADO)"
+  - "Comment Count"
+  - "Related Link Count"
+
+# ---------------------------------------------------------------------------
+# Commit sync configuration (commit-ado-sync.py)
+# ---------------------------------------------------------------------------
+commit_sync:
+  # Commit message keywords that trigger a Closed state recommendation.
+  # Case-insensitive. Must appear alongside AB#ID in the commit message.
+  state_keywords:
+    - fixes
+    - closes
+    - resolves
+    - completes
+    - done
+    - merged
+
+  # Auto-close parent items when all their children reach Closed state.
+  # e.g. all Tasks closed → User Story auto-closes → Feature auto-closes
+  cascade_enabled: true
+
+  # Maximum number of recent commits to inspect when --since-push is not usable.
+  default_commit_lookback: 10

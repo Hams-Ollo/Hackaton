@@ -1,0 +1,25 @@
+name: add-to-project
+
+on:
+  issues:
+    types: [opened, reopened, transferred, labeled]
+  pull_request:
+    types: [opened, reopened, labeled]
+
+jobs:
+  add-to-project:
+    name: Add to Hackathon project board
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          # GitHub Project URL — update the number after /projects/ if your project URL differs.
+          # Find it at: https://github.com/orgs/Terraformers-Anonymous/projects
+          # or: https://github.com/users/Hams-Ollo/projects
+          project-url: ${{ secrets.PROJECT_URL }}
+          # PROJECT_TOKEN must be a PAT (classic or fine-grained) with:
+          #   Classic PAT: project scope + repo scope
+          #   Fine-grained: repository permissions: Issues (read), Pull requests (read)
+          #                 organization permissions: Projects (read/write)
+          # NOTE: The built-in GITHUB_TOKEN does NOT have project scope — a PAT is required.
+          github-token: ${{ secrets.PROJECT_TOKEN }}

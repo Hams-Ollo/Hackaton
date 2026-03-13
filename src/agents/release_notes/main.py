@@ -1,1 +1,0 @@
-# TODO: Azure Function entrypoint for release notes
