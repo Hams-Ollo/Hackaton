@@ -121,10 +121,10 @@ Event-driven workflows run in parallel with Copilot-initiated changes.
 
 | Workflow | Trigger | Status |
 |---|---|---|
-| [`add-to-project.yml`](.github/workflows/add-to-project.yml) | Issue or PR opened | Functional |
-| [`ai-pr-review.yml`](.github/workflows/ai-pr-review.yml) | PR opened / updated | Functional  needs `AI_PR_REVIEW_FUNC_URL` secret |
-| [`chatops-ai.yml`](.github/workflows/chatops-ai.yml) | `/ai` comment | Stub |
-| [`release-notes.yml`](.github/workflows/release-notes.yml) | `v*` tag push | Stub |
+| [`add-to-project.yml`](.github/workflows/add-to-project.yml) | Issue or PR opened | ✅ Functional — needs `PROJECT_URL` + `PROJECT_TOKEN` secrets |
+| [`ai-pr-review.yml`](.github/workflows/ai-pr-review.yml) | PR opened / updated | ⚠️ Wired — needs Azure Function deployed + `AI_PR_REVIEW_FUNC_URL` / `AI_PR_REVIEW_FUNC_KEY` secrets |
+| [`chatops-ai.yml`](.github/workflows/chatops-ai.yml) | `/ai` comment | ❌ Stub — `chatops_router.py` not yet implemented |
+| [`release-notes.yml`](.github/workflows/release-notes.yml) | `v*` tag push | ❌ Broken — `call_release_notes.py` does not exist yet |
 
 ---
 
@@ -233,7 +233,9 @@ git commit -m "fix: handle null diff edge case AB#42"
 
 ## Further Reading
 
+- [**Hackathon Technical Roadmap**](HACKATHON_ROADMAP.md) — architecture diagrams, gap analysis, MVP Gantt, demo script, team onboarding checklist, key decisions
 - [Architecture and Developer Guide](docs/architecture.md)
+- [Hackathon Use Case Catalogue](hackathon-use-cases.md) — reference catalogue of standout use cases from the hackathon portal
 - [Platform Swap Reference](.github/instructions/platform-swap.instructions.md)
 - [GitHub DevFlow Conventions](.github/instructions/github-devflow.instructions.md)
 - [ADO Pipeline Guide](ado_backlog_pipeline/docs/ADO_AUTOMATION_PIPELINE_GUIDE.md)
