@@ -1,0 +1,131 @@
+# github-config.yaml
+# Central configuration for the GitHub DevFlow toolsuite.
+# Safe to commit — contains no credentials.
+# Auth: GitHub MCP server uses VS Code OAuth (no PAT needed in this file).
+# GitHub Actions auth: uses built-in GITHUB_TOKEN.
+
+# ---------------------------------------------------------------------------
+# GitHub connection
+# ---------------------------------------------------------------------------
+github:
+  org: Terraformers-Anonymous
+  repo: hackathon-project
+  project_number: 1
+  project_url: https://github.com/orgs/Terraformers-Anonymous/projects/1
+
+# ---------------------------------------------------------------------------
+# GitHub Projects v2 field configuration
+# Field IDs are GraphQL node IDs — unique to this project.
+# To populate: ask Copilot "list all fields on project 1 for org Terraformers-Anonymous"
+# using the github MCP server. Copy the returned IDs into this file.
+# ---------------------------------------------------------------------------
+project_fields:
+  project_id: ""          # GraphQL node ID of the project — looks like PVT_kwDO...
+                           # TODO: populate by querying project via github MCP server
+
+  status:
+    field_name: Status
+    field_id: ""           # TODO: populate after querying project fields
+    options:
+      todo: ""             # TODO: singleSelectOptionId for "Todo"
+      in_progress: ""      # TODO: singleSelectOptionId for "In Progress"
+      done: ""             # TODO: singleSelectOptionId for "Done"
+
+  priority:
+    field_name: Priority
+    field_id: ""           # TODO: populate after querying project fields
+    options:
+      critical: ""         # TODO: singleSelectOptionId for "Critical"
+      high: ""             # TODO: singleSelectOptionId for "High"
+      medium: ""           # TODO: singleSelectOptionId for "Medium"
+      low: ""              # TODO: singleSelectOptionId for "Low"
+
+  sprint:
+    field_name: Sprint
+    field_id: ""           # TODO: populate after querying project fields
+    # Iteration IDs change each sprint — always query dynamically via MCP
+    # Do not hardcode iteration IDs here
+
+# ---------------------------------------------------------------------------
+# Issue type → GitHub label mapping
+# Labels must exist in the repo before assignment.
+# ---------------------------------------------------------------------------
+issue_type_labels:
+  bug:        "bug"
+  feature:    "enhancement"
+  task:       "task"
+  epic:       "epic"
+  user_story: "user story"
+  test:       "testing"
+
+# ---------------------------------------------------------------------------
+# Priority → GitHub label mapping
+# ---------------------------------------------------------------------------
+priority_labels:
+  critical: "priority: critical"
+  high:     "priority: high"
+  medium:   "priority: medium"
+  low:      "priority: low"
+
+# ---------------------------------------------------------------------------
+# Status label mapping (mirrors GitHub Projects Status field for discoverability)
+# ---------------------------------------------------------------------------
+status_labels:
+  todo:        "status: todo"
+  in_progress: "status: in-progress"
+  done:        "status: done"
+  blocked:     "status: blocked"
+
+# ---------------------------------------------------------------------------
+# Auto-labels applied to every created issue
+# ---------------------------------------------------------------------------
+auto_labels:
+  - "hackathon"
+  - "agentic-devops"
+
+# ---------------------------------------------------------------------------
+# Team assignee map — GitHub username per team member
+# Format: "Display Name": "github-username"
+# ---------------------------------------------------------------------------
+assignee_map:
+  "Hans Havlik":           "hhavlik"           # TODO: confirm exact GitHub username
+  "Jamil Al Bouhairi":     "jalbouhairi"       # TODO: confirm exact GitHub username
+  "Ricardo Reyes-Jimenez": "rreyes-jimenez"   # TODO: confirm exact GitHub username
+  "Uma Bharti":            "ubharti"           # TODO: confirm exact GitHub username
+
+# ---------------------------------------------------------------------------
+# Sprint / milestone mapping
+# Add new sprints here each cycle — never modify existing entries.
+# ---------------------------------------------------------------------------
+sprint_map:
+  "1": "Sprint 1"
+  "2": "Sprint 2"
+  "3": "Sprint 3"
+
+# ---------------------------------------------------------------------------
+# Field defaults — applied when a value is not specified
+# ---------------------------------------------------------------------------
+field_defaults:
+  status:     "todo"
+  priority:   "medium"
+  type_label: "task"
+
+# ---------------------------------------------------------------------------
+# Default merge strategy for PRs
+# squash | merge | rebase
+# ---------------------------------------------------------------------------
+pr_defaults:
+  merge_method: "squash"
+  base_branch:  "main"
+
+# ---------------------------------------------------------------------------
+# Platform swap reference
+# This file is the GitHub equivalent of ado_backlog_pipeline/config/ado-config.yaml.
+# The MCP server and config file are the only things that change between platforms.
+# See .github/instructions/platform-swap.instructions.md for the full swap table.
+# ---------------------------------------------------------------------------
+platform:
+  name:        github
+  swap_target: ado
+  swap_config: ado_backlog_pipeline/config/ado-config.yaml
+  mcp_server_key: github
