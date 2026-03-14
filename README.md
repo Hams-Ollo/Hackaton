@@ -1,110 +1,168 @@
+﻿# DevFlow Suite
 
-# 🤖 Agentic DevOps Automation
-
-> **Microsoft Global Partner Hackathon · Capgemini · Team Terraformers Anonymous**
+> **Microsoft Global Partner Hackathon  Capgemini  Team Terraformers Anonymous**
 
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-powered-2088FF?logo=github-actions&logoColor=white)](https://github.com/Terraformers-Anonymous/hackathon-project/actions)
-[![Azure OpenAI](https://img.shields.io/badge/Azure_OpenAI-gpt--4o-0078D4?logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/en-us/products/ai-services/openai-service)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![VS Code Copilot](https://img.shields.io/badge/VS_Code-Copilot_Agents-007ACC?logo=visual-studio-code&logoColor=white)](https://code.visualstudio.com/docs/copilot/copilot-customization)
+[![GitHub MCP](https://img.shields.io/badge/GitHub_MCP-Official-181717?logo=github&logoColor=white)](https://github.com/github/github-mcp-server)
+[![Azure DevOps MCP](https://img.shields.io/badge/ADO_MCP-Official-0078D4?logo=azure-devops&logoColor=white)](https://github.com/microsoft/azure-devops-mcp)
 
 ---
 
-## ⚡ What This Does
+## The Problem We're Solving
 
-A **two-tier agentic pipeline** that eliminates the repetitive DevOps and IT ops work that slows engineering teams down.
+Developers lose significant time **context-switching** between their code editor and external project management tools  opening a browser to file a ticket, updating a sprint board, posting a PR review, or checking what's blocked. That context switch breaks flow and adds friction to every developer interaction with the team.
 
-| Tier | Trigger | What Happens |
+**DevFlow Suite collapses that context switch to zero.**
+
+Everything  creating issues, updating sprint boards, opening PRs, reviewing code, syncing work items  happens through **natural language in the GitHub Copilot chat panel inside VS Code**. No browser. No tab switch. No manual copy-paste of IDs.
+
+The platform is **swappable**: the same developer UX works against **GitHub Projects** or **Azure DevOps Boards**. You change which agent you invoke, not how you work.
+
+---
+
+## How It Works
+
+```
+  Developer types in VS Code Copilot Chat
+              |
+              v
+  +----------------------------------------------------+
+  |          VS Code Copilot Agent Mode                |
+  |                                                    |
+  |  GitHub Project Manager  --|                       |
+  |  GitHub DevOps Engineer  --+-- reads skills/       |
+  |  ADO Planner             --+-- reads instructions/ |
+  |  ADO Executor            --+-- reads config YAMLs  |
+  |  Codebase Reviewer       --|                       |
+  +------------+-------------------------------------------+
+               |  MCP tool calls (auto-routed by server)
+       +-------+--------+
+       v                v
+  +----------+    +---------------+
+  |  GitHub  |    |  Azure DevOps |
+  |  MCP     |    |  MCP          |
+  | (HTTP,   |    | (npx, browser |
+  |  OAuth)  |    |  login)       |
+  +----+-----+    +------+--------+
+       |                 |
+       v                 v
+  GitHub Issues     ADO Work Items
+  Projects v2       ADO Boards
+  Pull Requests     ADO Repos
+  Labels/Milestones ADO Pipelines
+
+  +----------------------------------------------------+
+  |          GitHub Actions (event-driven)             |
+  |  PR opened  -> AI review comment posted            |
+  |  Issue opened -> auto-added to project board       |
+  |  /ai comment -> ChatOps routing                    |
+  |  v* tag push -> release notes generation           |
+  +----------------------------------------------------+
+```
+
+---
+
+## Agents
+
+Five custom Copilot agents live in [`.github/agents/`](.github/agents/). Invoke any from Copilot Agent Mode in VS Code.
+
+| Agent | Platform | Use It For |
 |---|---|---|
-| 🤖 **VS Code Copilot Agents** | Developer asks in chat | Sprint planning, ADO board updates, work notes sync — all conversational |
-| ⚙️ **GitHub Actions** | Git events (PR, issue, tag, comment) | AI reviews PRs, triages issues, updates ADO work items, generates release notes |
+| **GitHub Project Manager** | GitHub | Query board state, groom backlog, plan sprint, decompose epics |
+| **GitHub DevOps Engineer** | GitHub | Create/update issues, open/review/merge PRs, update board fields |
+| **ADO Planner** | Azure DevOps | Plan ADO backlog, reconcile CSV, sprint planning |
+| **ADO Executor** | Azure DevOps | Edit CSV, run sync scripts, push to ADO board |
+| **Hackathon Codebase Reviewer** | Both | Full code audit, convention checks, sprint state report |
 
-**Real Azure OpenAI calls. Real ADO integration. Real GitHub project board automation.**
-
----
-
-## 🏗️ Architecture
+### Example Phrases
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    GitHub Events                         │
-│  PR opened │ Issue created │ /ai comment │ v* tag push  │
-└──────────────────┬──────────────────────────────────────┘
-                   │ GitHub Actions
-                   ▼
-┌─────────────────────────────────────────────────────────┐
-│              .github/scripts/  (Python orchestration)    │
-│  call_pr_review.py  │  chatops_router.py                 │
-└──────────────────┬──────────────────────────────────────┘
-                   │ HTTP POST
-                   ▼
-┌─────────────────────────────────────────────────────────┐
-│              src/agents/  (Flask HTTP servers)           │
-│  pr_review  │  issue_triage  │  log_analyst              │
-│  release_notes  │  test_generator                        │
-└────────┬──────────────────────────┬────────────────────-┘
-         │ Azure OpenAI SDK          │ Azure AI Search
-         ▼                           ▼
-┌────────────────┐         ┌─────────────────────┐
-│  gpt-4o        │         │  RAG Knowledge Base  │
-│  (Azure AOAI)  │         │  (HNSW vector index) │
-└────────────────┘         └─────────────────────┘
-         │
-         │ azure-devops SDK
-         ▼
-┌────────────────────────────────────────────────┐
-│           Azure DevOps REST API v7.1            │
-│  Work Items  │  Boards  │  Repos  │  Pipelines  │
-└────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│          VS Code Copilot Agent Mode (Tier 1)             │
-│  ADO Planner agent  │  ADO Executor agent                │
-│  Codebase Review agent  │  ado-workitems skill           │
-│  @azure-devops/mcp (live ADO tool access in chat)        │
-└─────────────────────────────────────────────────────────┘
+"Create a high-priority bug for the null pointer on login, assign to Jamil, sprint 2"
+"Show me everything in-progress on the board right now"
+"Open a PR from feature/auth to main -- it closes issue #14"
+"Review PR #7 and post inline comments on any logic issues"
+"What issues are unassigned?"
+"Sync my work notes to ADO"
+"Run a full sprint state report"
 ```
 
 ---
 
-## 📁 Repository Map
+## Skills
+
+Four skills provide step-by-step playbooks that agents reference during execution.
+
+| Skill | Platform | Capabilities |
+|---|---|---|
+| [`github-issues`](.github/skills/github-issues/SKILL.md) | GitHub | Create, update, label, assign, close issues |
+| [`github-projects`](.github/skills/github-projects/SKILL.md) | GitHub | Add items to board, set Status / Priority / Sprint fields |
+| [`github-pullrequests`](.github/skills/github-pullrequests/SKILL.md) | GitHub | Open, review, comment, approve, merge PRs |
+| [`ado-workitems`](.github/skills/ado-workitems/SKILL.md) | Azure DevOps | Create, update, sync ADO work items via CSV pipeline |
+
+---
+
+## MCP Servers
+
+Both servers are always active simultaneously in [`.vscode/mcp.json`](.vscode/mcp.json).
+
+| Server | Transport | Auth | Domains |
+|---|---|---|---|
+| `github` | HTTP remote  `https://api.githubcopilot.com/mcp/` | VS Code GitHub OAuth  no PAT needed | issues, pull_requests, projects, repos, labels, actions |
+| `ado` | stdio via `npx @azure-devops/mcp` | Browser Microsoft login (first use) | core, work, work-items, repositories, pipelines |
+
+**Platform swap:** Call a GitHub agent and GitHub MCP tools activate. Call an ADO agent and ADO MCP tools activate. No config change needed. See the [platform swap guide](.github/instructions/platform-swap.instructions.md).
+
+---
+
+## GitHub Actions
+
+Event-driven workflows run in parallel with Copilot-initiated changes.
+
+| Workflow | Trigger | Status |
+|---|---|---|
+| [`add-to-project.yml`](.github/workflows/add-to-project.yml) | Issue or PR opened | Functional |
+| [`ai-pr-review.yml`](.github/workflows/ai-pr-review.yml) | PR opened / updated | Functional  needs `AI_PR_REVIEW_FUNC_URL` secret |
+| [`chatops-ai.yml`](.github/workflows/chatops-ai.yml) | `/ai` comment | Stub |
+| [`release-notes.yml`](.github/workflows/release-notes.yml) | `v*` tag push | Stub |
+
+---
+
+## Repository Map
 
 ```
 .github/
-  agents/               # VS Code Copilot custom agents (.agent.md)
-  instructions/         # Scoped Copilot instructions (applyTo: glob)
-  skills/               # Reusable Copilot skill workflows
-  workflows/            # GitHub Actions (AI review, triage, ADO sync, ChatOps)
-  scripts/              # Orchestration scripts called by workflows
-  ISSUE_TEMPLATE/       # Bug + Feature issue templates (auto-triaged)
-  PULL_REQUEST_TEMPLATE.md  # PR checklist with AB#ID field
+  agents/                     # 5 Copilot custom agents (.agent.md)
+  skills/
+    github-issues/             # GitHub Issues skill
+    github-projects/           # GitHub Projects v2 skill
+    github-pullrequests/       # GitHub PR skill
+    ado-workitems/             # ADO work item skill
+  instructions/                # 5 scoped instruction files
+  workflows/                   # GitHub Actions
+  scripts/                     # Python orchestration scripts for Actions
 
-src/agents/             # AI agent HTTP servers (Flask, one per use case)
-  pr_review/            # POST /pr-review — reviews diffs, gates merge
-  issue_triage/         # POST /triage — classifies issues, creates ADO items
-  log_analyst/          # POST /analyze-logs — Azure Monitor log analysis
-  release_notes/        # POST /release-notes — tag-triggered changelog
-  test_generator/       # POST /generate-tests — unit test scaffolding
+github_devflow/
+  config/github-config.yaml   # GitHub platform config: org, project fields, labels, assignees
 
-ado_backlog_pipeline/   # Copilot-native ADO board management bundle
-  config/ado-config.yaml  # Single source of truth: org, fields, state maps
-  data/backlog.csv        # Canonical 43-column CSV — ADO push gate
-  data/TODO.md            # Sprint scratchpad (Copilot reads this)
-  data/WORK_NOTES.md      # Session work log (tag items with ADO#ID)
-  scripts/                # 9 Python scripts: pull, sync, commit-sync, report…
-  prompts/                # Session sync, work item creation, commit message prompts
+ado_backlog_pipeline/
+  config/ado-config.yaml      # ADO platform config: org, project, fields, state maps
+  data/backlog.csv             # Canonical CSV -- ADO push gate
+  data/TODO.md                 # Sprint scratchpad (Copilot reads as memory)
+  data/WORK_NOTES.md           # Session work log (tag items with ADO#ID)
+  scripts/                     # 9 Python scripts: pull, sync, report, comment...
+  prompts/                     # Prompt files for ADO session sync operations
 
-rag/ingest/             # Azure AI Search indexer (HNSW vector + semantic)
-prompts/                # System/user prompts for each agent
-infra/bicep/            # IaC for AOAI, AI Search, Key Vault, App Insights
-docs/                   # Architecture docs, diagrams (Mermaid), guides
+docs/
+  architecture.md              # Full developer architecture guide
+  guides/                      # Operational runbooks
 ```
 
 ---
 
-## 🚀 Quick Start
+## Getting Started
 
-### 1️⃣ Clone & Install
+### 1. Clone and Install
 
 ```bash
 git clone https://github.com/Terraformers-Anonymous/hackathon-project.git
@@ -112,139 +170,76 @@ cd hackathon-project
 pip install -r requirements.txt
 ```
 
-### 2️⃣ Configure Environment
+### 2. Connect the GitHub MCP Server
 
-```bash
-cp ado_backlog_pipeline/.env.example ado_backlog_pipeline/.env
-# Edit .env — fill in ADO_PAT, AZURE_OPENAI_*, AZURE_SEARCH_*, GITHUB_TOKEN
+No setup needed. The `github` MCP server uses VS Code's built-in GitHub OAuth.
+
+1. Open VS Code -> **Copilot Chat** -> switch to **Agent Mode**
+2. VS Code connects to `https://api.githubcopilot.com/mcp/` automatically using your GitHub login
+
+### 3. Connect the ADO MCP Server (first use only)
+
+On first use VS Code will prompt for:
+- Your ADO org name (e.g. `my-org`)
+- Your ADO PAT (Work Items: Read & Write scope)
+
+### 4. Populate GitHub Project Field IDs (one-time)
+
+`github_devflow/config/github-config.yaml` has blank field ID placeholders. Populate them once:
+
+```
+(In GitHub Project Manager agent mode)
+"List all fields on project 1 for org Terraformers-Anonymous"
 ```
 
-### 3️⃣ Add GitHub Actions Secrets
+Copy the returned `PVT_...` and `PVTSSF_...` IDs into the config file.
 
-Go to **Settings → Secrets and variables → Actions** and add:
-
-| Secret | Description |
-|---|---|
-| `ADO_PAT` | Azure DevOps PAT (Work Items: Read & Write) |
-| `AZURE_OPENAI_ENDPOINT` | Your Azure OpenAI endpoint URL |
-| `AZURE_OPENAI_KEY` | Your Azure OpenAI API key |
-| `AZURE_OPENAI_DEPLOYMENT` | Deployment name (e.g. `gpt-4o`) |
-| `AZURE_SEARCH_ENDPOINT` | Azure AI Search endpoint |
-| `AZURE_SEARCH_KEY` | Azure AI Search admin key |
-| `PROJECT_TOKEN` | GitHub PAT with `project` scope (for board automation) |
-| `PROJECT_URL` | Your GitHub Project URL (e.g. `https://github.com/orgs/Terraformers-Anonymous/projects/1`) |
-| `AI_PR_REVIEW_FUNC_URL` | Deployed PR Review agent URL |
-| `AI_CHATOPS_FUNC_URL` | Deployed ChatOps agent URL |
-
-### 4️⃣ Confirm ADO Config
+### 5. Configure ADO Connection
 
 Edit [`ado_backlog_pipeline/config/ado-config.yaml`](ado_backlog_pipeline/config/ado-config.yaml):
-- Set `ado.org_url` to your actual Azure DevOps org
+- Set `ado.org_url` to your Azure DevOps org URL
 - Set `ado.project` to your ADO project name
 - Update `assignee_map` with real team member emails
 
-### 5️⃣ Start Using Copilot Agents in VS Code
+---
 
-Open VS Code → Copilot Chat → Agent Mode → select **ADO Planner** or type:
+## Commit Conventions
+
+```bash
+# Close a GitHub Issue on merge
+git commit -m "feat: implement board sync Closes #12"
+
+# Link to an ADO Work Item
+git commit -m "fix: handle null diff edge case AB#42"
 ```
-@ADO Planner what's in our current sprint?
-@ADO Executor sync my work notes to ADO
-```
+
+`Closes #N` auto-closes the GitHub Issue when the PR merges to main.
+`AB#ID` triggers the Azure Boards GitHub App to transition the work item state.
 
 ---
 
-## 🤖 VS Code Copilot Agents
+## Team
 
-| Agent | Purpose | Trigger Phrases |
+| Name | GitHub | Focus |
 |---|---|---|
-| **ADO Planner** | Sprint planning, backlog grooming, work item decomposition | `what's in our sprint?`, `help me plan this week` |
-| **ADO Executor** | Execute ADO changes via CSV — create, update, sync work items | `sync my work notes`, `update ADO from my notes` |
-| **Codebase Review** | Full sprint audit — stubs, conventions, open issues, ADO accuracy | `review the codebase`, `sprint audit` |
-
-**The `ado-workitems` skill** is available in all agents:
-```
-/ado-workitems new    # Draft a new work item row in backlog.csv
-/ado-workitems sync   # Push dirty rows to ADO
-/ado-workitems pull   # Pull latest ADO state into CSV
-/ado-workitems report # Generate Markdown status report
-```
-
-**MCP Live ADO Access:** The `@azure-devops/mcp` server gives agents live read/write access to your ADO board directly from Copilot chat. VS Code will prompt for your ADO org name and PAT on first use.
-
----
-
-## ⚙️ GitHub Actions
-
-| Workflow | Trigger | What It Does |
-|---|---|---|
-| `ai-pr-review.yml` | PR opened / updated | Fetches diff → calls PR Review agent → posts AI findings as PR comment |
-| `chatops-ai.yml` | `/ai <command>` in issue comment | Routes ChatOps commands to the correct agent endpoint |
-| `release-notes.yml` | Push to `v*` tag | Generates AI release notes from commit history |
-| `add-to-project.yml` | Issue or PR opened/labeled | Auto-adds to the **Hackathon** GitHub Project board |
-| `ado-sync.yml` *(TODO)* | PR merged with `AB#ID` | Updates ADO work item state to Closed |
-| `ado-triage.yml` *(TODO)* | Issue opened | AI classifies → creates ADO work item → posts ADO URL |
-
-### ChatOps Commands
-
-Post a comment on any issue or PR:
-
-```
-/ai review        → trigger PR diff review
-/ai triage        → re-classify this issue
-/ai standup       → generate standup summary from open items
-```
-
----
-
-## 📋 ADO Board Management
-
-The `ado_backlog_pipeline/` bundle is a **local-first ADO management pipeline** operated by Copilot agents:
-
-```
-┌──────────────┐    pull-ado-workitems.py     ┌────────────┐
-│   Azure DevOps│ ──────────────────────────► │ backlog.csv│
-│   Boards      │                              │  (43 cols) │
-│              │ ◄────────────────────────── │            │
-└──────────────┘    sync-ado-workitems.py     └─────┬──────┘
-                    (rows where _row_dirty=1)        │
-                                              Copilot edits
-                                              _row_dirty=1
-```
-
-**Daily workflow:**
-1. Say `"sync my work notes"` → Copilot drafts Work Notes + CSV updates
-2. Review the diff in `backlog.csv`
-3. Set `_row_dirty=1` on rows to push → Copilot runs `sync-ado-workitems.py`
-4. Commit with `AB#<ID>` → `commit-ado-sync.py` auto-updates ADO state
-
----
-
-## 🔑 Commit Convention
-
-Tag all commits linking to ADO work items:
-```
-git commit -m "feat: implement PR review agent AB#42"
-git commit -m "fix: handle empty diff edge case Closes AB#43"
-```
-
-Keywords `Fixes`, `Closes`, `Resolves` before `AB#ID` auto-transition the work item to **Closed** via the Azure Boards GitHub App.
-
----
-
-## 👥 Team
-
-| Name | GitHub | Role |
-|---|---|---|
-| **Hans Havlik** | [@Hams-Ollo](https://github.com/Hams-Ollo) | ADO Pipeline, Architecture |
-| **Jamil Al Bouhairi** | — | Agent Development |
-| **Ricardo Reyes-Jimenez** | — | GitHub Actions, Infrastructure |
-| **Uma Bharti** | — | RAG, Prompt Engineering |
+| **Hans Havlik** | [@Hams-Ollo](https://github.com/Hams-Ollo) | Architecture, ADO Pipeline, MCP Config |
+| **Jamil Al Bouhairi** | -- | Agent Development, Prompt Design |
+| **Ricardo Reyes-Jimenez** | -- | GitHub Actions, Infrastructure |
+| **Uma Bharti** | -- | Skills, Instructions, Platform Swap |
 
 **Organization:** [Terraformers-Anonymous](https://github.com/Terraformers-Anonymous)
 
 ---
 
-## 📜 License
+## Further Reading
 
-[MIT](LICENSE) © 2026 Terraformers Anonymous
+- [Architecture and Developer Guide](docs/architecture.md)
+- [Platform Swap Reference](.github/instructions/platform-swap.instructions.md)
+- [GitHub DevFlow Conventions](.github/instructions/github-devflow.instructions.md)
+- [ADO Pipeline Guide](ado_backlog_pipeline/docs/ADO_AUTOMATION_PIPELINE_GUIDE.md)
 
+---
+
+## License
+
+[MIT](LICENSE) (c) 2026 Terraformers Anonymous
